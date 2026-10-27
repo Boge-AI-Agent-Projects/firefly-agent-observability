@@ -1,0 +1,29 @@
+{
+  "name": "@firefly/adapter-openclaw",
+  "version": "0.1.0",
+  "description": "Firefly observability adapter for OpenClaw Agent platform",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "clean": "rimraf dist"
+  },
+  "keywords": [
+    "firefly",
+    "openclaw",
+    "observability",
+    "agent",
+    "tracing"
+  ],
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.41",
+    "rimraf": "^5.0.10",
+    "typescript": "^5.9.3"
+  }
+}

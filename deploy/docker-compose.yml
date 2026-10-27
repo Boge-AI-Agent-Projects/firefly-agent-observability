@@ -1,0 +1,88 @@
+# ============================================================
+# Firefly — Docker Compose 一键部署
+#
+# Usage:
+#   docker compose up -d
+#
+# Services:
+#   pgsql    — PostgreSQL 17
+#   backend  — Firefly FastAPI backend (:8000)
+#   frontend — Static Nginx serving React SPA (:3000)
+# ============================================================
+
+services:
+  # ── PostgreSQL ─────────────────────────────────────────────
+  pgsql:
+    image: postgres:17-alpine
+    container_name: firefly-pgsql
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: firefly
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in deploy/.env}
+      POSTGRES_DB: firefly
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "${PG_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U firefly -d firefly"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - firefly-net
+
+  # ── Backend ────────────────────────────────────────────────
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: firefly-backend
+    restart: unless-stopped
+    depends_on:
+      pgsql:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://firefly:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in deploy/.env}@pgsql:5432/firefly
+      APP_ENV: ${APP_ENV:-production}
+      DEBUG: "false"
+      APP_PORT: 8000
+      APP_HOST: 0.0.0.0
+      INGEST_API_KEY: ${INGEST_API_KEY:?Set INGEST_API_KEY in deploy/.env}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      PAGE_SIZE_DEFAULT: 20
+      PAGE_SIZE_MAX: 200
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - firefly-net
+
+  # ── Frontend (Nginx) ──────────────────────────────────────
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_FIREFLY_API_URL: ${VITE_FIREFLY_API_URL:-http://localhost:8000}
+    container_name: firefly-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    networks:
+      - firefly-net
+
+volumes:
+  pgdata:
+
+networks:
+  firefly-net:
+    driver: bridge

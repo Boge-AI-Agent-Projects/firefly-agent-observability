@@ -1,0 +1,30 @@
+{
+  "id": "firefly-trace",
+  "name": "Firefly Trace Plugin",
+  "description": "Captures full agent turn traces (llm_input, llm_output, tool calls) and sends them to Firefly",
+  "activation": {
+    "onStartup": true
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "fireflyUrl": {
+        "type": "string",
+        "default": "http://localhost:8000"
+      },
+      "fireflyKey": {
+        "type": "string",
+        "minLength": 1
+      },
+      "projectId": {
+        "type": "string",
+        "format": "uuid"
+      },
+      "bufferLimit": {
+        "type": "integer",
+        "default": 500
+      }
+    }
+  }
+}
